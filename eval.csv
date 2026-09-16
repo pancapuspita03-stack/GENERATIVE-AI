@@ -1,0 +1,4 @@
+prompt,model,tokens,latency_ms
+What is RAG?,claude-sonnet-4-5,312,410
+Explain embeddings,claude-sonnet-4-5,498,580
+What is RAG?,gpt-4o,287,360
