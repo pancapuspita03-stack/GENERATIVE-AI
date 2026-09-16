@@ -1,1 +1,0 @@
-NumPy provides fast vector operations for embeddings.

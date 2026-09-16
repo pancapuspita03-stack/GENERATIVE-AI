@@ -1,1 +1,0 @@
-Python for AI is awesome. Pandas makes analysis easy.
