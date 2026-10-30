@@ -1,11 +1,12 @@
-import os, base64
+import os
+import base64
 from openai import OpenAI
 from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Menggunakan OpenRouter karena limit OpenAI/Anthropic habis
+# Menggunakan OpenRouter
 client = OpenAI(
     api_key=os.environ["OPENROUTER_API_KEY"],
     base_url="https://openrouter.ai/api/v1"
@@ -14,14 +15,14 @@ client = OpenAI(
 # Option A: URL (fastest)
 def describe_image_url(url: str) -> str:
     response = client.chat.completions.create(
-        model="openrouter/free", 
+        model="google/gemini-2.5-flash",  # Ganti dengan model gratis yang mendukung vision di OpenRouter jika perlu
         max_tokens=512,
         messages=[{
             "role": "user",
             "content": [
                 {
                     "type": "text",
-                    "text": "Describe what you see in this image."
+                    "text": "Describe what you see in this image in detail."
                 },
                 {
                     "type": "image_url",
@@ -44,7 +45,7 @@ def describe_image_file(path: str) -> str:
     media_type = f"image/{ext}"  # image/png, image/jpeg, image/webp, image/gif
 
     response = client.chat.completions.create(
-        model="openrouter/free",
+        model="google/gemini-2.5-flash",
         max_tokens=512,
         messages=[{
             "role": "user",
@@ -66,7 +67,9 @@ def describe_image_file(path: str) -> str:
     return response.choices[0].message.content
 
 
-# Usage: (Sudah dibuka komentarnya agar langsung jalan)
-print("Sedang menganalisis gambar dari Wikipedia...")
-text = describe_image_url("https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Sunrise_over_the_sea.jpg/1280px-Sunrise_over_the_sea.jpg")
-print(text)
+# Usage:
+if __name__ == "__main__":
+    print("Sedang menganalisis gambar dari Wikipedia...")
+    image_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Sunrise_over_the_sea.jpg/1280px-Sunrise_over_the_sea.jpg"
+    text = describe_image_url(image_url)
+    print(text)

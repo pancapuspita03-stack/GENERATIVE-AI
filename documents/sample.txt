@@ -1,0 +1,1 @@
+Dokumen ini membahas tentang implementasi Retrieval-Augmented Generation (RAG) menggunakan LlamaIndex dan OpenRouter API dengan model LLM open-source.

@@ -12,7 +12,7 @@ client = OpenAI(
     base_url="https://openrouter.ai/api/v1"
 )
 
-MODEL_NAME = "openrouter/free"
+MODEL_NAME = os.environ.get("OPENROUTER_MODEL", "openai/gpt-4o-mini")
 
 # ============================================================
 # EXERCISE 1
@@ -320,7 +320,7 @@ def run_json_repair_demo():
 
 def evaluate_models_cot(scores_text: str) -> str:
     """Send scores to the model to rank using CoT."""
-    
+
     system_prompt = """You are an AI evaluation expert.
 You will be given a list of LLM evaluation scores across 3 tasks.
 Perform the following steps:
@@ -343,6 +343,8 @@ RECOMMENDATION:
         response = client.chat.completions.create(
             model=MODEL_NAME,
             max_tokens=512,
+            temperature=0,
+            timeout=60,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Here are the scores:\n\n{scores_text}"}
@@ -380,6 +382,19 @@ def run_cot_demo():
     for i, scores in enumerate(test_inputs, start=1):
         print(f"\n--- Test Input {i} ---")
         print(scores.strip())
+
+        model_scores = {}
+        for line in scores.strip().splitlines():
+            model, task_scores = line.split(":", 1)
+            values = [float(value.strip()) for value in task_scores.split(",")]
+            model_scores[model.strip()] = sum(values) / len(values)
+
+        print("\nCalculated averages:")
+        for model, average in sorted(
+            model_scores.items(), key=lambda item: item[1], reverse=True
+        ):
+            print(f"- {model}: {average:.2f}")
+
         result = evaluate_models_cot(scores.strip())
         print("\nModel Output:")
         print(result)

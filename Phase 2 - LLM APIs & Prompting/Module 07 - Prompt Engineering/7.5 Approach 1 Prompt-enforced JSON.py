@@ -1,4 +1,5 @@
-import os, json
+import json
+import os
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -8,6 +9,8 @@ client = OpenAI(
     api_key=os.environ["OPENROUTER_API_KEY"],
     base_url="https://openrouter.ai/api/v1"
 )
+
+MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
 
 SYSTEM = """You are a data extractor. Extract information and
 return ONLY a JSON object.
@@ -29,7 +32,7 @@ texts = [
 def extract_company_info(text: str) -> dict:
     try:
         resp = client.chat.completions.create(
-            model="openrouter/free",
+            model=MODEL,
             max_tokens=512,
             messages=[
                 {"role": "system", "content": SYSTEM},
@@ -57,10 +60,10 @@ def extract_company_info(text: str) -> dict:
         
         return json.loads(raw)
         
-    except json.JSONDecodeError:
-        return {"error": "Failed to parse JSON", "raw": raw}
-    except Exception as e:
-        return {"error": f"Exception: {str(e)}"}
+    except json.JSONDecodeError as error:
+        return {"error": f"Failed to parse JSON: {error}", "raw": raw}
+    except Exception as error:
+        return {"error": f"Exception: {str(error)}"}
 
 
 for text in texts:

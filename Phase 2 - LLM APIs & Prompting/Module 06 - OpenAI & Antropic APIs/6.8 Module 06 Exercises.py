@@ -1,8 +1,6 @@
 import openai
 import os
-import asyncio
 import time
-import pandas as pd
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -21,7 +19,7 @@ def retry_on_rate_limit(
     max_tokens=512
 ):
     """
-    Retry an API call when RateLimitError occurs using OpenRouter/OpenAI.
+    Mengulang panggilan API saat terjadi RateLimitError dengan jeda waktu eksponensial.
     """
     api_messages = []
     if system:
@@ -31,7 +29,7 @@ def retry_on_rate_limit(
     for attempt in range(max_retries):
         try:
             response = client.chat.completions.create(
-                model="openrouter/free",
+                model="google/gemini-2.5-flash",
                 max_tokens=max_tokens,
                 messages=api_messages,
             )
@@ -42,13 +40,12 @@ def retry_on_rate_limit(
                 raise
 
             wait_time = 2 ** attempt
-            print(f"Rate limit reached. Retrying in {wait_time} seconds...")
+            print(f"Batas rate limit tercapai. Mencoba kembali dalam {wait_time} detik...")
             time.sleep(wait_time)
 
-    raise RuntimeError("Maximum retries exceeded.")
+    raise RuntimeError("Batas maksimum percobaan ulang telah terlampaui.")
 
 
-# Mock client for testing
 class MockRateLimitClient:
     def __init__(self, failures_before_success=3):
         self.failures_before_success = failures_before_success
@@ -68,7 +65,11 @@ class MockRateLimitClient:
                 if self.parent.attempts <= self.parent.failures_before_success:
                     import httpx
                     err_response = httpx.Response(429, request=httpx.Request("POST", "http://test"))
-                    raise openai.RateLimitError(message="Mock rate limit", response=err_response, body=None)
+                    raise openai.RateLimitError(
+                        message="Mock rate limit", 
+                        response=err_response, 
+                        body=None
+                    )
 
                 return MockResponse()
 
@@ -80,7 +81,7 @@ class MockRateLimitClient:
 class MockResponse:
     class Choice:
         class Message:
-            content = "Mock response after retry."
+            content = "Respon mock setelah berhasil mencoba ulang."
         message = Message()
     
     choices = [Choice()]
@@ -90,15 +91,6 @@ class MockResponse:
         completion_tokens = 20
 
     usage = Usage()
-
-
-# Test Exercise 1
-print("=== MENJALANKAN EXERCISE 1 ===")
-mock_client = MockRateLimitClient(failures_before_success=3)
-response = retry_on_rate_limit(mock_client, messages=[{"role": "user", "content": "Hello"}])
-print("Exercise 1 result:")
-print(response.choices[0].message.content)
-print("\n" + "="*50 + "\n")
 
 
 # ============================================================
@@ -121,7 +113,7 @@ class TokenBudgetManager:
     def add_usage(self, input_tokens: int, output_tokens: int):
         new_total = self.total_tokens + input_tokens + output_tokens
         if new_total > self.max_tokens:
-            raise BudgetExceeded(f"Budget exceeded. Limit: {self.max_tokens}, requested: {new_total}")
+            raise BudgetExceeded(f"Budget terlampaui. Batas: {self.max_tokens}, Diminta: {new_total}")
 
         self.total_input_tokens += input_tokens
         self.total_output_tokens += output_tokens
@@ -130,95 +122,57 @@ class TokenBudgetManager:
         return self.max_tokens - self.total_tokens
 
 
-# Test Exercise 2
-print("=== MENJALANKAN EXERCISE 2 ===")
-budget = TokenBudgetManager(max_tokens=1000)
-budget.add_usage(200, 150)
-print(f"Exercise 2 - Remaining tokens: {budget.remaining_tokens()}")
-print("\n" + "="*50 + "\n")
-
-
-# ============================================================
-# Exercise 3
-# Compare Multiple Models Concurrently
-# ============================================================
-
-async def call_model(client, model: str, prompt: str):
-    start_time = time.perf_counter()
-    try:
-        response = await asyncio.to_thread(
-            client.chat.completions.create,
-            model=model,
-            max_tokens=512,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        latency_ms = (time.perf_counter() - start_time) * 1000
-        return {
-            "model": model,
-            "response_text": response.choices[0].message.content[:50] + "...", # potong string
-            "input_tokens": response.usage.prompt_tokens if response.usage else 0,
-            "output_tokens": response.usage.completion_tokens if response.usage else 0,
-            "latency_ms": round(latency_ms, 2)
-        }
-    except Exception as error:
-        latency_ms = (time.perf_counter() - start_time) * 1000
-        return {
-            "model": model,
-            "response_text": f"ERROR: {error}",
-            "input_tokens": 0,
-            "output_tokens": 0,
-            "latency_ms": round(latency_ms, 2)
-        }
-
-
-async def compare_models_async(client, prompt: str, models: list[str]) -> pd.DataFrame:
-    tasks = [call_model(client, model, prompt) for model in models]
-    results = await asyncio.gather(*tasks)
-    return pd.DataFrame(results)
-
-
-def compare_models(prompt: str, models: list[str]) -> pd.DataFrame:
-    client = OpenAI(
-        api_key=os.environ["OPENROUTER_API_KEY"],
-        base_url="https://openrouter.ai/api/v1"
-    )
-    return asyncio.run(compare_models_async(client, prompt, models))
-
-
-# Example Exercise 3
-print("=== MENJALANKAN EXERCISE 3 ===")
-models = ["openrouter/free"]
-results = compare_models("Explain what a vector database is.", models)
-print("Exercise 3 result:")
-print(results.to_string(index=False))
-print("\n" + "="*50 + "\n")
-
-
 # ============================================================
 # Exercise 4
-# Stream Response Directly to Console (Modified)
+# Stream Response Directly to File (.txt)
 # ============================================================
-
-def stream_response(prompt: str):
+def stream_to_file(prompt: str, output_path: str):
     client = OpenAI(
         api_key=os.environ["OPENROUTER_API_KEY"],
         base_url="https://openrouter.ai/api/v1"
     )
 
-    response = client.chat.completions.create(
-        model="openrouter/free",
-        max_tokens=512,
-        stream=True,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    for chunk in response:
-        if len(chunk.choices) > 0 and chunk.choices[0].delta.content:
-            text = chunk.choices[0].delta.content
-            print(text, end="", flush=True)
-            
-    print() # Adds an empty line at the end
+    print(f"Writing response to file '{output_path}' in real-time...\n")
+    with open(output_path, "w", encoding="utf-8") as file:
+        response = client.chat.completions.create(
+            model="google/gemini-2.5-flash",
+            max_tokens=512,
+            stream=True,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        for chunk in response:
+            if len(chunk.choices) > 0 and chunk.choices[0].delta.content:
+                text = chunk.choices[0].delta.content
+                file.write(text)
+                file.flush()
+                print(text, end="", flush=True)
 
-# Example Exercise 4
-print("=== MENJALANKAN EXERCISE 4 ===")
-stream_response("Explain retrieval-augmented generation.")
-print("\n" + "="*50 + "\n")
+    print(f"\n\nResponse saved to: {output_path}")
+
+
+# ============================================================
+# Main Execution Block (Menjalankan Exercise 1, 2, & 4)
+# ============================================================
+if __name__ == "__main__":
+    # Test Exercise 1
+    print("=== MENJALANKAN EXERCISE 1 ===")
+    mock_client = MockRateLimitClient(failures_before_success=3)
+    response = retry_on_rate_limit(mock_client, messages=[{"role": "user", "content": "Halo"}])
+    print("Hasil Exercise 1:")
+    print(response.choices[0].message.content)
+    print(f"Token terpakai -> Input: {response.usage.prompt_tokens}, Output: {response.usage.completion_tokens}")
+    print("\n" + "="*50 + "\n")
+
+    # Test Exercise 2
+    print("=== MENJALANKAN EXERCISE 2 ===")
+    budget = TokenBudgetManager(max_tokens=1000)
+    input_used_1, output_used_1 = 200, 150
+    budget.add_usage(input_used_1, output_used_1)
+    print(f"Pemakaian 1 -> Input: {input_used_1} token, Output: {output_used_1} token")
+    print(f"Total kumulatif terpakai: {budget.total_tokens} token")
+    print(f"Sisa token dalam budget: {budget.remaining_tokens()} token")
+    print("\n" + "="*50 + "\n")
+
+    # Test Exercise 4
+    print("=== MENJALANKAN EXERCISE 4 ===")
+    stream_to_file("Explain retrieval-augmented generation.", "exercise_4_output.txt")

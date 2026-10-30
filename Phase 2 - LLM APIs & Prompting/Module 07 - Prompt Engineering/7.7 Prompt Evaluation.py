@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+MODEL = os.environ.get("OPENROUTER_MODEL", "openai/gpt-4o-mini")
+
 client = OpenAI(
     api_key=os.environ["OPENROUTER_API_KEY"],
     base_url="https://openrouter.ai/api/v1"
@@ -26,22 +28,28 @@ def evaluate_prompt(system: str, cases: list[EvalCase]) -> dict:
     for case in cases:
         try:
             resp = client.chat.completions.create(
-                model="openrouter/free",
+                model=MODEL,
                 max_tokens=256,
                 messages=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": case.input_text}
                 ],
             )
-            
-            if not hasattr(resp, 'choices') or not resp.choices:
-                text = "ERROR: API returned empty choices (OpenRouter down/rate-limited)"
+
+            if not hasattr(resp, "choices") or not resp.choices:
+                text = "ERROR: API returned empty choices"
             else:
                 content = resp.choices[0].message.content
                 text = content.strip() if content else "ERROR: Empty content"
-                
+
         except Exception as e:
-            text = f"ERROR: Exception {str(e)}"
+            error_message = str(e)
+            if "429" in error_message or "rate limit" in error_message.lower():
+                text = "ERROR: OpenRouter rate limit exceeded"
+            elif "401" in error_message or "403" in error_message:
+                text = "ERROR: API key is invalid or not authorized"
+            else:
+                text = f"ERROR: {error_message}"
 
         # Check keyword hit
         keyword_hit = any(

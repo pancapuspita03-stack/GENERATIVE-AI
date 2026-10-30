@@ -1,0 +1,1 @@
+Embeddings represent text as numerical vectors. A vector index can compare these vectors to find documents that are semantically similar to a user's question.

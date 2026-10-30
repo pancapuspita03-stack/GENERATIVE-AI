@@ -1,19 +1,26 @@
-from openai import OpenAI, RateLimitError, APIError
-import os, json
+import json
+import os
+
 from dotenv import load_dotenv
+from openai import APIError, OpenAI, RateLimitError
 
 load_dotenv()
 
-# Gunakan OpenRouter lagi (karena OpenAI API Anda tidak memiliki saldo)
+MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
+API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+if not API_KEY:
+    raise RuntimeError("OPENROUTER_API_KEY tidak ditemukan di .env")
+
 client = OpenAI(
-    api_key=os.environ.get("OPENROUTER_API_KEY"),
+    api_key=API_KEY,
     base_url="https://openrouter.ai/api/v1"
 )
 
 try:
     response = client.chat.completions.create(
-        model="openrouter/free",
-        response_format={"type": "json_object"}, # enforces valid JSON
+        model=MODEL,
+        response_format={"type": "json_object"},
         messages=[
             {
                 "role": "system", 

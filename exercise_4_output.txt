@@ -1,0 +1,23 @@
+**Retrieval-Augmented Generation (RAG)** is an AI framework that combines **information retrieval** (searching a knowledge base) with **text generation** (LLMs) to produce more accurate, up-to-date, and verifiable responses.
+
+---
+
+### 1. The Core Problem: Why do we need RAG?
+Standard Large Language Models (LLMs) have three fundamental limitations:
+*   **Knowledge Cutoff:** They only know what was in their training data (e.g., "data up to January 2024").
+*   **Hallucination:** They confidently generate plausible-sounding but factually incorrect answers.
+*   **Black Box / No Citations:** You cannot easily verify *where* an answer came from.
+*   **No Private Data:** They don't know your company's internal HR policy, your codebase, or your customer's support history.
+
+**RAG solves this by "grounding" the LLM in external, verifiable data at inference time.**
+
+---
+
+### 2. The RAG Pipeline: Step-by-Step
+
+#### Phase 1: Offline / Ingestion (Preparation)
+*This happens once (or periodically) before the user asks a question.*
+
+1.  **Load Data:** Ingest documents (PDFs, CSVs, HTML, Notion, Confluence, code repos).
+2.  **Chunking:** Split large documents into smaller, semantically meaningful pieces (e.g., 500–1000 tokens). *Critical step: Bad chunking = bad retrieval.*
+3.  **Embedding:** Pass each chunk through an **

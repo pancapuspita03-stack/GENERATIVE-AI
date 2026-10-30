@@ -1,0 +1,9 @@
+transformers<5
+huggingface-hub<1
+torch
+peft
+datasets<4
+accelerate
+numpy<2
+pandas<3
+pyarrow<20
