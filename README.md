@@ -1,1 +1,6 @@
+<<<<<<< HEAD
 "# Generative-AI" 
+=======
+# GENERATIVE-AI
+TUGAS MODUL 1-5
+>>>>>>> 7602113c24b205d6949e2b2855485e332cb6512f
