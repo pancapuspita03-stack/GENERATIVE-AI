@@ -1,0 +1,1 @@
+Retrieval-Augmented Generation (RAG) combines document retrieval with language generation. It retrieves relevant passages from an external knowledge base before an LLM writes an answer.

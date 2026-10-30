@@ -1,0 +1,6 @@
+httpx
+numpy
+ollama
+openai
+python-dotenv
+voyageai
